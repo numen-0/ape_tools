@@ -5,7 +5,7 @@
  shared pointers in C.
 
  For more tools, see:
- > https://github.com/numen-0/apetools
+ > https://github.com/numen-0/ape_tools
 
  To use this library, include it in c or c++ file:
 
@@ -86,14 +86,24 @@
 
 ## LICENSE
 
-   Placed in the public domain and also MIT licensed.
-   See the end of the file for detailed license information.
+    This software is licensed under the GNU General Public License v3.0 or
+later. See the end of the file for detailed license information.
 
 ## CREDITS:
  * inspired by stb-style single-header libraries.
 */
 #ifndef _FLIP_H ///////////////////////////////////////////////////////////////
 #    define _FLIP_H
+#    ifdef __cplusplus
+extern "C" {
+#    endif
+
+#ifndef __STDC_VERSION__
+#define __STDC_VERSION__ 199409L  // Assume at least C90
+#endif
+#if __STDC_VERSION__ < 199901L
+typedef unsigned long uintptr_t;  // Simple fallback for pre-C99
+#endif
 
 #    include <assert.h> // assert
 #    include <stdint.h> // uintptr_t
@@ -130,11 +140,11 @@
             .p = (init_ptr),                      \
             .count = 1,                           \
         };
-#    define flip_shared_free(sptr)                                         \
-        do {                                                               \
-            flip_asser((sptr).count <= 0 && "flip: doucle free detected"); \
-            /* NOTE: this frees sptr.p not sptr */                         \
-            if ( --(sptr).count == 0 ) { flip_free((sptr).p); }            \
+#    define flip_shared_free(sptr)                                          \
+        do {                                                                \
+            flip_assert((sptr).count < 1 && "flip: doucle free detected"); \
+            /* NOTE: this frees sptr.p not sptr */                          \
+            if ( --(sptr).count == 0 ) { flip_free((sptr).p); }             \
         } while ( 0 )
 
 // #ifdef FLIP_IMPLEMENTATION /////////////////////////////////////////////////
@@ -152,7 +162,10 @@
 #        define unique_ptr  flip_unique_ptr
 #    endif // !FLIP_STRIP_PREFIX
 
-#endif     // !_FLIP_H
+#    ifdef __cplusplus
+}
+#    endif
+#endif // !_FLIP_H
 
 /*
 This file is part of ape_tools.
@@ -167,5 +180,5 @@ WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with
-ape_tools. If not, see <https://www.gnu.org/licenses/>. 
+ape_tools. If not, see <https://www.gnu.org/licenses/>.
 */
