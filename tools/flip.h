@@ -360,13 +360,27 @@ violence
 /*****************************************************************************/
 
 #    ifdef FLIP_STRIP_PREFIX //////////////////////////////////////////////////
-#        undef FLIP_STRIP_PREFIX
-#        define share       flip_share
-#        define shared_free flip_shared_free
-#        define shared_ptr  flip_shared_ptr
-#        define unique      flip_unique
+#        define context_add   flip_context_add
+#        define context_close flip_context_close
+#        define context_open  flip_context_open
+
+#        define SHARED_PTR_SIZE FLIP_SHARED_PTR_SIZE
+#        define share           flip_share
+#        define share_cast      flip_share_cast
+#        define shared_free     flip_shared_free
+#        define Shared_Ptr      flip_Shared_Ptr
+#        define Shared_Ptr_s    flip_Shared_Ptr_s
+#        define share_dump      flip_share_dump
+#        define share_free      flip_share_free
+#        define share_init      flip_share_init
+#        define share_peek      flip_share_peek
+
 #        define UNIQUE_NULL FLIP_UNIQUE_NULL
+#        define unique      flip_unique
+#        define unique_cast flip_unique_cast
 #        define unique_free flip_unique_free
+#        define unique_move flip_unique_move
+#        define unique_peek flip_unique_peek
 #    endif // !FLIP_STRIP_PREFIX
 
 #    ifdef __cplusplus
