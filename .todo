@@ -1,0 +1,30 @@
+  **\                     **\
+  ** |                    ** |
+******\    ******\   ******* | ******\
+\_**  _|  **  __**\ **  __** |**  __**\
+  ** |    ** /  ** |** /  ** |** /  ** |
+  ** |**\ ** |  ** |** |  ** |** |  ** |
+  \****  |\******  |\******* |\******  |
+   \____/  \______/  \_______| \______/
+./tools/flip.h:
+[ ] ddd:
+    [x] unique pointers
+    [x] shared pointers
+    [ ] weak pointers
+    [x] static-contexts
+    [ ] dynamic-contexts?
+[ ] test
+[x] doc
+    [x] unique pointers
+    [x] shared pointers
+    [x] static-contexts
+./tools/crow.h:
+[ ] ddd:
+    [x] positional
+    [ ] parametric
+[ ] test
+[ ] doc
+    [ ] positional
+    [ ] parametric
+README.md:
+[ ] lines of code?
