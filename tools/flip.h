@@ -158,7 +158,7 @@ macros.
 ### Contexts
  Simple static-size pointer reference tracking to enclose code in a context, and
  then free all the tracked pointers at once. It can be considered as a manual
- garbage collector. O_o
+ garbage collector. `O_o`
 
 ```
 {
@@ -199,7 +199,7 @@ macros.
 {
     // NOTE: Check the "Contexts" section for the interface, and just replace
     //       'context' with 'block'.
-    //       
+    //
     //       The only difference from Contexts is that 'open' can accept
     //       an initial size of 0. This will automatically use the default
     //       size defined by `FLIP_BLOCK_DEF_SIZE`.
@@ -264,9 +264,6 @@ typedef unsigned long uintptr_t;         // Simple fallback for pre-C99
 #    define flip_realloc realloc
 
 #    define _FLIP__ARR_SIZE(arr) (sizeof(arr) / sizeof(*arr))
-
-#    define FLIP_UNUSED(var) ((void)var)
-#    define FLIP_TODO(msg)   fprintf(stderr, "flip: TODO: " msg "\n")
 
 /* unique pointers ***********************************************************/
 
@@ -419,20 +416,27 @@ typedef unsigned long uintptr_t;         // Simple fallback for pre-C99
 /*****************************************************************************/
 
 #    ifdef FLIP_STRIP_PREFIX //////////////////////////////////////////////////
+
+#        define block_add      flip_block_add
+#        define block_close    flip_block_close
+#        define block_dump     flip_block_dump
+#        define block_open     flip_block_open
+
 #        define context_add   flip_context_add
 #        define context_close flip_context_close
+#        define context_dump  flip_context_dump
 #        define context_open  flip_context_open
 
 #        define SHARED_PTR_SIZE FLIP_SHARED_PTR_SIZE
-#        define share           flip_share
-#        define share_cast      flip_share_cast
-#        define shared_free     flip_shared_free
 #        define Shared_Ptr      flip_Shared_Ptr
 #        define Shared_Ptr_s    flip_Shared_Ptr_s
+#        define share           flip_share
+#        define share_cast      flip_share_cast
 #        define share_dump      flip_share_dump
 #        define share_free      flip_share_free
 #        define share_init      flip_share_init
 #        define share_peek      flip_share_peek
+#        define shared_free     flip_shared_free
 
 #        define UNIQUE_NULL FLIP_UNIQUE_NULL
 #        define unique      flip_unique
@@ -440,6 +444,7 @@ typedef unsigned long uintptr_t;         // Simple fallback for pre-C99
 #        define unique_free flip_unique_free
 #        define unique_move flip_unique_move
 #        define unique_peek flip_unique_peek
+
 #    endif // !FLIP_STRIP_PREFIX
 
 #    ifdef __cplusplus
