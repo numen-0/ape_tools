@@ -1,5 +1,5 @@
 /*
-# flip.h - v0.0.1 - pointer safety & shared pointer utils - by numen-0
+# flip.h - v0.0.2 - pointer safety & shared pointer utils - by numen-0
 
  This is a single-header-file library providing utilities for unique and
  shared pointers in C.
@@ -38,6 +38,10 @@
         If defined, removes the `flip_` prefix from all api function-like
 macros.
 
+- FLIP_BLOCK_DEF_SIZE
+
+        Initial block size, if size=0 in `flip_block_open(block, size)`
+
 
 ### Unique Pointers
  The `flip_unique` macro obfuscates a pointer by flipping its bits, preventing
@@ -55,9 +59,11 @@ macros.
     }
 
     { // to get the pointer back simply do:
-        const int raw_ptr = *flip_unique_cast(int*, uptr); // recommended way
+        int val = flip_unique_peek(uptr)[0]; // recommended way
         // or:
-        const int raw_ptr_ = *(int*)flip_unique(uptr);
+        int val = flip_unique_cast(int*, uptr)[0];
+        // or:
+        int val = (int*)flip_unique(uptr);
         // to use it as an lvalue, do the same:
         flip_unique_cast(int*, uptr)[0] = 42;
     }
@@ -79,7 +85,12 @@ macros.
 
         // doing the next thing defeats the purpose of using a unique pointer:
         int* unpr_copy = flip_unique(uptr);
-        // if you just want an inmutable reference:
+
+        // if you just want an immutable reference:
+        const int* unpr_ref = flip_unique_peek(uptr); // recommended way
+        // or:
+        const int* unpr_ref_ = flip_unique_cast(int*, uptr);
+        // or:
         const int* unpr_ref = flip_unique(uptr);
     }
 
@@ -122,7 +133,7 @@ macros.
         }
         // or peek it, in this case the explicit cast can be ommited:
         // or you can peek the data (retrieve the raw pointer), no need for
-explicit casting in this case:
+        // explicit casting in this case:
         ((char*)flip_share_peek(str))[10] = '\0';
     }
 
@@ -146,7 +157,8 @@ explicit casting in this case:
 
 ### Contexts
  Simple static-size pointer reference tracking to enclose code in a context, and
- then free all the tracked pointers at once.
+ then free all the tracked pointers at once. It can be considered as a manual
+ garbage collector. O_o
 
 ```
 {
@@ -171,10 +183,27 @@ explicit casting in this case:
 
     { // to free all ptrs inside the context just do:
         flip_context_close(loop_c); // be carefull of double freeing
+        // also in mid context, all pointers can be dump with:
+        flip_context_dump(loop_c);
     }
 
     // NOTE: if a context is overflown, it will stop tracking the new ptrs,
     //       and the program will start leaking mem :(
+}
+```
+
+### Blocks
+ Same to Contexts, but they grow dynamically as references are added.
+
+```
+{
+    // NOTE: Check the "Contexts" section for the interface, and just replace
+    //       'context' with 'block'.
+    //       
+    //       The only difference from Contexts is that 'open' can accept
+    //       an initial size of 0. This will automatically use the default
+    //       size defined by `FLIP_BLOCK_DEF_SIZE`.
+    flip_block_open(my_block, 0);
 }
 ```
 
@@ -244,8 +273,8 @@ typedef unsigned long uintptr_t;         // Simple fallback for pre-C99
 #    define FLIP_UNIQUE_NULL flip_unique(NULL)
 
 #    define flip_unique(ptr)            ((void*)(~(uintptr_t)ptr))
-#    define flip_unique_cast(type, ptr) ((type)(void*)(~(uintptr_t)ptr))
-#    define flip_unique_peek(ptr)       flip_unique(ptr)
+#    define flip_unique_peek(ptr)       ((const void*)flip_unique(ptr))
+#    define flip_unique_cast(type, ptr) ((type)flip_unique_peek(ptr))
 
 #    define flip_unique_free(uptr) flip_free((void*)(~(uintptr_t)uptr))
 #    define flip_unique_move(uptr, ptr) \
@@ -299,9 +328,17 @@ typedef unsigned long uintptr_t;         // Simple fallback for pre-C99
         } cname = {                        \
             .count = 0,                    \
         }
+#    define flip_context_dump(cname)                                   \
+        do {                                                           \
+            for ( size_t _indx = 0; _indx < (cname).count; _indx++ ) { \
+                flip_free((cname).entries[_indx]);                     \
+            }                                                          \
+            (cname).count = 0;                                         \
+        } while ( 0 )
 #    define flip_context_close(cname)                                  \
         do {                                                           \
             for ( size_t _indx = 0; _indx < (cname).count; _indx++ ) { \
+                if ( (cname).entries[_indx] == NULL ) { continue; }    \
                 flip_free((cname).entries[_indx]);                     \
             }                                                          \
         } while ( 0 )
@@ -313,49 +350,71 @@ typedef unsigned long uintptr_t;         // Simple fallback for pre-C99
                       ptr))
 
 /* block *********************************************************************/
-#    if 0 // NOTE: this is highly experimental
-#        define flip_block_open(bname, size)                  \
-            struct {                                          \
-                size_t count;                                 \
-                size_t cap;                                   \
-                void** entries;                               \
-            } bname = {                                       \
-                .count = 0,                                   \
-                .cap = size,                                  \
-                .entries = flip_malloc(sizeof(void*) * size), \
-            }
 
-#        define flip_block_close(bname)                                    \
-            do {                                                           \
-                if ( (bname).entries == NULL ) { break; }                  \
-                for ( size_t _indx = 0; _indx < (bname).count; _indx++ ) { \
-                    if ( (bname).entries[_indx] == NULL ) { continue; }    \
-                    flip_free((bname).entries[_indx]);                     \
-                }                                                          \
-                flip_free((bname).entries);                                \
-            } while ( 0 )
+#    ifndef FLIP_BLOCK_DEF_SIZE
+#        define FLIP_BLOCK_DEF_SIZE 64
+#    endif // !FLIP_BLOCK_DEF_SIZE
 
-// NOTE: if we do flip_block_add(my_b, malloc(n)), malloc will be called once
-//       it's really ugly, but is this or make a function and I choose
-violence
-#        define flip_block_add(bname, ptr)                                     \
-            ((bname).entries == NULL)                                          \
-                ? (flip_warn("block '" #bname                                  \
-                             "' failed to realloc, leaking memory ._."),       \
-                      ptr)                                                     \
-                : ((bname).count < (bname).cap)                                \
-                ? ((bname).entries[(bname).count++] = ptr)                     \
-                : (((bname).entries                                            \
-                       = (void**)realloc((bname).entries, ((bname).cap *= 2))) \
-                      != NULL)                                                 \
-                ? ((bname).entries[(bname).count++] = ptr)                     \
-                : (flip_warn("block '" #bname                                  \
-                             "' failed to realloc, leaking memory ._."),       \
-                      (bname).entries = NULL, ptr)
-#    endif
+#    define flip_block_open(bname, size)                       \
+        struct {                                               \
+            size_t count;                                      \
+            size_t cap;                                        \
+            void** entries;                                    \
+        } bname;                                               \
+        do {                                                   \
+            size_t _cap = (size);                              \
+            _cap = (_cap > 0) ? _cap : FLIP_BLOCK_DEF_SIZE;    \
+            bname.count = 0;                                   \
+            bname.cap = _cap;                                  \
+            bname.entries = flip_malloc(sizeof(void*) * _cap); \
+        } while ( 0 )
+#    define flip_block_dump(bname)                                     \
+        do {                                                           \
+            if ( (bname).entries == NULL ) { break; }                  \
+            for ( size_t _indx = 0; _indx < (bname).count; _indx++ ) { \
+                if ( (bname).entries[_indx] == NULL ) { continue; }    \
+                flip_free((bname).entries[_indx]);                     \
+            }                                                          \
+            (bname).count = 0;                                         \
+        } while ( 0 )
+#    define flip_block_close(bname)                                    \
+        do {                                                           \
+            if ( (bname).entries == NULL ) { break; }                  \
+            for ( size_t _indx = 0; _indx < (bname).count; _indx++ ) { \
+                if ( (bname).entries[_indx] == NULL ) { continue; }    \
+                flip_free((bname).entries[_indx]);                     \
+            }                                                          \
+            flip_free((bname).entries);                                \
+        } while ( 0 )
 
-/* weak pointers *************************************************************/
-// TODO:
+// NOTE: When using flip_block_add(my_b, foo(n)), foo is only called once.
+//       However, due to macro expansion, we can't wrap the expression in
+//       ({ ... }) without making it non-portable.
+//
+//       It could be simplified this by removing the feature of returning the
+//       ptr from the macro, but that will lead to this:
+//          void* ptr = malloc(size);   // 1. get the ptr
+//          flip_block_add(block, ptr); // 2. save it
+//
+//       The current implementation, supports both a one-step approach and a
+//       two-step one:
+//          void* ptr = flip_block_add(block, malloc(size)); // 1 and 2 together
+//
+//       This could be cleaner with a function, but I want to keep this library
+//       purely macro-based.
+#    define flip_block_add(bname, ptr)                                     \
+        ((bname).entries == NULL)                                          \
+            ? (flip_warn("block '" #bname "' is leaking memory ._."), ptr) \
+            : (((bname).count < (bname).cap)                               \
+                      ? ((bname).entries[(bname).count++] = ptr)           \
+                      : ((((bname).entries = (void**)realloc(              \
+                               (bname).entries, ((bname).cap *= 2)))       \
+                             != NULL)                                      \
+                                ? ((bname).entries[(bname).count++] = ptr) \
+                                : (flip_warn("block '" #bname              \
+                                             "' failed to realloc, "       \
+                                             "leaking memory ._."),        \
+                                      (bname).entries = NULL, ptr)))
 
 /*****************************************************************************/
 

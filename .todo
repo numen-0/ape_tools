@@ -7,17 +7,17 @@
   \****  |\******  |\******* |\******  |
    \____/  \______/  \_______| \______/
 ./tools/flip.h:
-[ ] ddd:
+[x] ddd:
     [x] unique pointers
     [x] shared pointers
-    [ ] weak pointers
     [x] static-contexts
-    [ ] dynamic-contexts?
+    [x] dynamic-contexts
 [ ] test
 [x] doc
     [x] unique pointers
     [x] shared pointers
     [x] static-contexts
+    [x] dynamic-contexts
 ./tools/crow.h:
 [ ] ddd:
     [x] positional
