@@ -18,6 +18,18 @@
     [x] shared pointers
     [x] static-contexts
     [x] dynamic-contexts
+./tools/abyss.h:
+[ ] ddd:
+    [x] arena allocator (bump allocator)
+    [x] surge allocator (arena allocator with internal counter)
+    [ ] dual arena allocator (dual bump allocator)
+    [ ] buddy allocator
+    [ ] pool allocator
+    [ ] leak check for malloc and free
+[ ] test
+[x] doc
+    [x] arena allocator
+    [x] surge allocator
 ./tools/crow.h:
 [ ] ddd:
     [x] positional
