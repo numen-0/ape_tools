@@ -1,5 +1,5 @@
 /*
-# crow.h - v0.0.1 - Simple and Portable Argument Parser - by numen-0
+# crow.h - v0.1 - Simple and Portable Argument Parser - by numen-0
 
  This is a single-header-file library providing utilities for argument parsing.
 

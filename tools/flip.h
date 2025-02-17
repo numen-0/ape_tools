@@ -1,5 +1,5 @@
 /*
-# flip.h - v0.0.2 - pointer safety & shared pointer utils - by numen-0
+# flip.h - v0.2 - pointer safety & shared pointer utils - by numen-0
 
  This is a single-header-file library providing utilities for unique and
  shared pointers in C.

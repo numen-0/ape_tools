@@ -1,5 +1,5 @@
 /*
-# abyss.h - v0.0.1 - collection of memory allocators - by numen-0
+# abyss.h - v0.2 - collection of memory allocators - by numen-0
 
  This is a single-header-file library providing utilities for memory allocation.
 
@@ -23,6 +23,10 @@
 - `ABYSS_UNSAFE_MODE`
 
     Disables safety checks and warnings.
+
+- `ABYSS_DATA_ALIGN`
+
+    Defines the alignment in bytes for the allocated blocks (default: 8 bytes).
 
 
 ### Allocators
@@ -62,10 +66,10 @@ void abyss_ALLOCATOR_reset(Abyss_ALLOCATOR* allocator);
    See the end of the file for detailed license information.
 
 ## CREDITS:
- * inspired by stb-style single-header libraries.
+ * Inspired by stb-style single-header libraries.
 */
 
-#ifndef _ABYSS_H ///////////////////////////////////////////////////////////
+#ifndef _ABYSS_H //////////////////////////////////////////////////////////////
 #    define _ABYSS_H
 #    ifdef __cplusplus
 extern "C" {
@@ -73,19 +77,6 @@ extern "C" {
 
 #    include <stddef.h>
 #    include <stdio.h>
-
-#    define _ABYSS_WARN(msg, ...)                                          \
-        fprintf(stderr, "%s:%d:abyss:warn: " msg "\n", __FILE__, __LINE__, \
-            ##__VA_ARGS__)
-
-#    ifdef ABYSS_UNSAFE_MODE
-#        define _ABYSS_SAFETY_CHECK(code)
-#    else
-#        define _ABYSS_SAFETY_CHECK(code) \
-            do {                           \
-                code                       \
-            } while ( 0 )
-#    endif // !_ABYSS_SAFETY_CHECK
 
 /* arena allocator ***********************************************************/
 
@@ -106,15 +97,34 @@ inline static void abyss_surge_free(Abyss_Surge* aa, void* ptr);
 inline static void abyss_surge_reset(Abyss_Surge* aa);
 
 /*****************************************************************************/
-#    ifdef ABYSS_IMPLEMENTATION //////////////////////////////////////////////
+#    ifdef ABYSS_IMPLEMENTATION ///////////////////////////////////////////////
 #        undef ABYSS_IMPLEMENTATION
+
+#        ifdef ABYSS_UNSAFE_MODE
+#            define _ABYSS_SAFETY_CHECK(code)
+#        else
+#            define _ABYSS_SAFETY_CHECK(code) \
+                do {                          \
+                    code                      \
+                } while ( 0 )
+#        endif // !_ABYSS_SAFETY_CHECK
+
+#        define _ABYSS_WARN2(msg, ...)                                         \
+            fprintf(stderr, "%s:%d:abyss:warn: " msg "\n", __FILE__, __LINE__, \
+                ##__VA_ARGS__)
+#        define _ABYSS_WARN(msg) _ABYSS_WARN2(msg "%s", "")
+
+#        ifndef ABYSS_DATA_ALIGN
+#            define ABYSS_DATA_ALIGN 8
+#        endif // !ABYSS_DATA_ALIGN
+#        define _ABYSS_ROUND_UP(n, align) (((n) + (align) - 1) & -(align))
 
 /* arena allocator ***********************************************************/
 
-// [AArena|*** allocated ***|     free     ]
-//                          |              |
-// AA.buf[AA.off]----------/              /
-// AA.buf[AA.cap]------------------------/
+// [AArena |*** allocated ***|     free     ]
+// AA.buf-/                  |              |
+// AA.buf[AA.off]-----------/              /
+// AA.buf[AA.cap]-------------------------/
 struct Abyss_Arena_s {
     size_t size;
     size_t offset;
@@ -133,7 +143,9 @@ Abyss_Arena* abyss_arena(void* buf, size_t size)
     Abyss_Arena* aa = (Abyss_Arena*)buf;
 
     aa->size = size - sizeof(Abyss_Arena);
-    aa->offset = 0;
+    // aling the buf with padding, by adding the offset
+    aa->offset = _ABYSS_ROUND_UP(sizeof(Abyss_Arena), ABYSS_DATA_ALIGN)
+        - sizeof(Abyss_Arena);
 
     return aa;
 }
@@ -143,7 +155,7 @@ void* abyss_arena_alloc(Abyss_Arena* aa, size_t size)
     if ( aa->size - aa->offset < size ) { return NULL; }
 
     void* ptr = &(aa->buf[aa->offset]);
-    aa->offset = aa->offset + size;
+    aa->offset = _ABYSS_ROUND_UP(aa->offset + size, ABYSS_DATA_ALIGN);
 
     return ptr;
 }
@@ -157,14 +169,18 @@ void abyss_arena_free(Abyss_Arena* aa, void* ptr)
         }
     });
 }
-void abyss_arena_reset(Abyss_Arena* aa) { aa->offset = 0; }
+void abyss_arena_reset(Abyss_Arena* aa)
+{
+    aa->offset = _ABYSS_ROUND_UP(sizeof(Abyss_Arena), ABYSS_DATA_ALIGN)
+        - sizeof(Abyss_Arena);
+}
 
 /* surge allocator ***********************************************************/
 
-// [ASurge|*** allocated ***|     free     ]
-//                          |              |
-// AS.buf[AS.off]----------/              /
-// AS.buf[AS.cap]------------------------/
+// [ASurge |*** allocated ***|     free     ]
+// AS.buf-/                  |              |
+// AS.buf[AS.off]-----------/              /
+// AS.buf[AS.cap]-------------------------/
 // if AS.count reaches 0 it will automatically reset the allocator
 struct Abyss_Surge_s {
     size_t size;
@@ -185,7 +201,9 @@ Abyss_Surge* abyss_surge(void* buf, size_t size)
     Abyss_Surge* as = (Abyss_Surge*)(void*)buf;
 
     as->size = size;
-    as->offset = 0;
+    // aling the buf with padding, by adding the offset
+    as->offset = _ABYSS_ROUND_UP(sizeof(Abyss_Arena), ABYSS_DATA_ALIGN)
+        - sizeof(Abyss_Arena);
     as->count = 0;
 
     return as;
@@ -196,7 +214,7 @@ void* abyss_surge_alloc(Abyss_Surge* as, size_t size)
     if ( as->size - as->offset < size ) { return NULL; }
 
     void* ptr = &as->buf[as->offset];
-    as->offset = as->offset + size;
+    as->offset = _ABYSS_ROUND_UP(as->offset + size, ABYSS_DATA_ALIGN);
     as->count++;
 
     return ptr;
@@ -218,21 +236,38 @@ void abyss_surge_free(Abyss_Surge* as, void* ptr)
         }
     });
 
-    if ( as->count == 1 ) { as->offset = 0; }
+    if ( as->count == 1 ) {
+        as->offset = _ABYSS_ROUND_UP(sizeof(Abyss_Arena), ABYSS_DATA_ALIGN)
+            - sizeof(Abyss_Arena);
+    }
     as->count--;
 }
 void abyss_surge_reset(Abyss_Surge* as)
 {
-    as->offset = 0;
+    as->offset = _ABYSS_ROUND_UP(sizeof(Abyss_Arena), ABYSS_DATA_ALIGN)
+        - sizeof(Abyss_Arena);
     as->count = 0;
 }
 
 #    endif                    // !ABYSS_IMPLEMENTATION
 
 
-#    ifdef ABYSS_STRIP_PREFIX ////////////////////////////////////////////
+#    ifdef ABYSS_STRIP_PREFIX /////////////////////////////////////////////////
 #        undef ABYSS_STRIP_PREFIX
-#    endif                    // !ABYSS_STRIP_PREFIX
+
+#        define Arena       Abyss_Arena
+#        define arena       abyss_arena
+#        define arena_alloc abyss_arena_alloc
+#        define arena_free  abyss_arena_free
+#        define arena_reset abyss_arena_reset
+
+#        define Surge       Abyss_Surge
+#        define surge       abyss_surge
+#        define surge_alloc abyss_surge_alloc
+#        define surge_free  abyss_surge_free
+#        define surge_reset abyss_surge_reset
+
+#    endif // !ABYSS_STRIP_PREFIX
 
 #    ifdef __cplusplus
 }
