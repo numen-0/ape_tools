@@ -13,7 +13,7 @@
     [x] static-contexts
     [x] dynamic-contexts
 [ ] test
-[x] doc
+[x] doc:
     [x] unique pointers
     [x] shared pointers
     [x] static-contexts
@@ -22,12 +22,14 @@
 [ ] ddd:
     [x] arena allocator (bump allocator)
     [x] surge allocator (arena allocator with internal counter)
+    [ ] allocator balancer
     [ ] dual arena allocator (dual bump allocator)
     [ ] buddy allocator
     [ ] pool allocator
     [ ] leak check for malloc and free
+    [x] thread safety
 [ ] test
-[x] doc
+[x] doc:
     [x] arena allocator
     [x] surge allocator
 ./tools/crow.h:
@@ -35,7 +37,7 @@
     [x] positional
     [ ] parametric
 [ ] test
-[ ] doc
+[ ] doc:
     [ ] positional
     [ ] parametric
 README.md:

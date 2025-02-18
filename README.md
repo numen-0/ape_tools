@@ -4,8 +4,8 @@ c utils, following the [stb](https://github.com/nothings/stb) coding style.
 ## Tools
 | lib      | description                                          | status     |
 |:--------:|:-----------------------------------------------------|:----------:|
+| `abyss`  | collection of memory allocators                      | `+v0.3`    |
 | `flip`   | pointer safety utils                                 | `+v0.2`    |
-| `abyss`  | collection of memory allocators                      | `+v0.2`    |
 | `crow`   | simple and portable argument parser                  | `+wip`     |
 | `bob`    | recursive build tool                                 | `+todo`    |
 
