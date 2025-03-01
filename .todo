@@ -22,6 +22,7 @@
 [ ] ddd:
     [x] arena allocator (bump allocator)
     [x] surge allocator (arena allocator with internal counter)
+    [ ] allocator totem
     [ ] allocator balancer
     [ ] dual arena allocator (dual bump allocator)
     [ ] buddy allocator
@@ -32,6 +33,8 @@
 [x] doc:
     [x] arena allocator
     [x] surge allocator
+    [ ] ABYSS_OFFSET_MODE
+    [ ] allocator totem
 ./tools/crow.h:
 [ ] ddd:
     [x] positional
